@@ -395,6 +395,23 @@ def __get_tags(vm_):
         tags = None
     return tags
 
+def __get_sa_scopes(vm_):
+    '''
+    Get configured Service Account scopes.
+    '''
+    t = config.get_cloud_config_value(
+        'ex_service_accounts', vm_, __opts__,
+        default='[]', search_global=False)
+
+    # Consider warning the user that the tags in the cloud profile
+    # could not be interpreted, bad formatting?
+    try:
+        sa = literal_eval(t)
+    except Exception:  # pylint: disable=W0703
+        sa = None
+    if not sa or not isinstance(sa, list):
+        sa = None
+    return sa
 
 def __get_metadata(vm_):
     '''
@@ -2054,6 +2071,14 @@ def create(vm_=None, call=None):
                 'The value of \'ex_disk_type\' needs to be one of: '
                 '\'pd-standard\', \'pd-ssd\''
             )
+
+    if LIBCLOUD_VERSION_INFO >= (0, 16, 0):
+
+        # This only exists in current trunk of libcloud and should be in next
+        # release
+        kwargs.update({
+            'ex_service_accounts': __get_sa_scopes(vm_)
+        })
 
     if 'external_ip' in kwargs and kwargs['external_ip'] == "None":
         kwargs['external_ip'] = None
